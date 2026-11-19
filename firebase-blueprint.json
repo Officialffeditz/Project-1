@@ -1,0 +1,403 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User focus preferences, distraction budget, active timeouts, and earned screen-time reward balance synced across devices.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "rewardBankMinutes": {
+          "type": "integer"
+        },
+        "shortFormMinutesToday": {
+          "type": "number"
+        },
+        "timeoutActiveUntil": {
+          "type": "integer"
+        },
+        "leisurePassUntil": {
+          "type": "integer"
+        },
+        "strictModeEnabled": {
+          "type": "boolean"
+        },
+        "focusEndsAt": {
+          "type": "integer"
+        },
+        "focusDurationMinutes": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "uid",
+        "displayName",
+        "email",
+        "rewardBankMinutes",
+        "shortFormMinutesToday",
+        "timeoutActiveUntil",
+        "leisurePassUntil",
+        "strictModeEnabled",
+        "focusEndsAt",
+        "focusDurationMinutes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SyncedDevice": {
+      "title": "SyncedDevice",
+      "description": "Registered desktop or mobile device enforcing synced blocklists and schedules.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "os": {
+          "type": "string",
+          "enum": ["macOS", "Windows", "Linux", "iOS", "Android"]
+        },
+        "formFactor": {
+          "type": "string",
+          "enum": ["desktop", "mobile", "tablet"]
+        },
+        "enforcementActive": {
+          "type": "boolean"
+        },
+        "lastSeenAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "name",
+        "os",
+        "formFactor",
+        "enforcementActive",
+        "lastSeenAt",
+        "createdAt"
+      ]
+    },
+    "BlockRule": {
+      "title": "BlockRule",
+      "description": "Custom distraction prevention rule for apps, domains, short-form feeds, or games.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "pattern": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "category": {
+          "type": "string",
+          "enum": ["short_form", "social_feed", "gaming", "custom"]
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["strict_lock", "timeout_10m", "work_hours_lock"]
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "platforms": {
+          "type": "array"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "target",
+        "pattern",
+        "category",
+        "mode",
+        "enabled",
+        "platforms",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "DowntimeSchedule": {
+      "title": "DowntimeSchedule",
+      "description": "Recurring working/study hours or downtime period for automatic game locking and social media blocking.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "scheduleType": {
+          "type": "string",
+          "enum": ["work_study", "downtime"]
+        },
+        "startTime": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 5,
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+        },
+        "endTime": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 5,
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+        },
+        "days": {
+          "type": "array"
+        },
+        "lockGames": {
+          "type": "boolean"
+        },
+        "lockSocialAndShorts": {
+          "type": "boolean"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "name",
+        "scheduleType",
+        "startTime",
+        "endTime",
+        "days",
+        "lockGames",
+        "lockSocialAndShorts",
+        "enabled",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ActivityLog": {
+      "title": "ActivityLog",
+      "description": "AI-classified media watch or app usage event with action taken.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "appOrDomain": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "category": {
+          "type": "string",
+          "enum": ["educational", "productive_work", "distracting_short_form", "social_feed", "gaming"]
+        },
+        "durationMinutes": {
+          "type": "number"
+        },
+        "actionTaken": {
+          "type": "string",
+          "enum": ["allowed_unlimited", "gentle_nudge", "timeout_blocked", "work_hours_locked", "focus_completed"]
+        },
+        "aiReasoning": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 400
+        },
+        "deviceOs": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "ownerId",
+        "title",
+        "appOrDomain",
+        "category",
+        "durationMinutes",
+        "actionTaken",
+        "aiReasoning",
+        "deviceOs",
+        "createdAt"
+      ]
+    },
+    "DailyStat": {
+      "title": "DailyStat",
+      "description": "Aggregated daily screen-time metrics across categories for weekly analytics.",
+      "type": "object",
+      "properties": {
+        "dateKey": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "ownerId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "educationalMinutes": {
+          "type": "number"
+        },
+        "productiveMinutes": {
+          "type": "number"
+        },
+        "socialShortsMinutes": {
+          "type": "number"
+        },
+        "gamingMinutes": {
+          "type": "number"
+        },
+        "timeoutsTriggered": {
+          "type": "integer"
+        },
+        "focusSessionsCompleted": {
+          "type": "integer"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "dateKey",
+        "ownerId",
+        "educationalMinutes",
+        "productiveMinutes",
+        "socialShortsMinutes",
+        "gamingMinutes",
+        "timeoutsTriggered",
+        "focusSessionsCompleted",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Authenticated user focus profile, active timeouts, and screen-time reward bank."
+    },
+    "/users/{userId}/devices/{deviceId}": {
+      "schema": { "$ref": "#/entities/SyncedDevice" },
+      "description": "Registered cross-OS desktop and mobile devices synced to this user."
+    },
+    "/users/{userId}/blocklist/{ruleId}": {
+      "schema": { "$ref": "#/entities/BlockRule" },
+      "description": "User custom blocklist rules."
+    },
+    "/users/{userId}/schedules/{scheduleId}": {
+      "schema": { "$ref": "#/entities/DowntimeSchedule" },
+      "description": "Working/study hours and scheduled downtime periods."
+    },
+    "/users/{userId}/activityLogs/{logId}": {
+      "schema": { "$ref": "#/entities/ActivityLog" },
+      "description": "AI-inspected media and app activity logs."
+    },
+    "/users/{userId}/dailyStats/{dateKey}": {
+      "schema": { "$ref": "#/entities/DailyStat" },
+      "description": "Daily screen-time summary statistics for weekly charts."
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "Clearline",
+  "description": "Cross-OS social media and game distraction prevention with AI content detection, strict blocking, scheduled downtime, focus rewards, and weekly analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

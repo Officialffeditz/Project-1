@@ -1,0 +1,307 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: deny all access by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Core primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function userExists(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    // Validation Blueprints
+    function isValidUserProfile(data, userId) {
+      return data.keys().hasAll([
+          'uid', 'displayName', 'email', 'rewardBankMinutes',
+          'shortFormMinutesToday', 'timeoutActiveUntil', 'leisurePassUntil',
+          'strictModeEnabled', 'focusEndsAt', 'focusDurationMinutes',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'uid', 'displayName', 'email', 'rewardBankMinutes',
+          'shortFormMinutesToday', 'timeoutActiveUntil', 'leisurePassUntil',
+          'strictModeEnabled', 'focusEndsAt', 'focusDurationMinutes',
+          'createdAt', 'updatedAt'
+        ])
+        && data.uid == userId
+        && data.uid == request.auth.uid
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100
+        && data.email is string && data.email.size() >= 1 && data.email.size() <= 160
+        && data.rewardBankMinutes is int && data.rewardBankMinutes >= 0 && data.rewardBankMinutes <= 10000
+        && data.shortFormMinutesToday is number && data.shortFormMinutesToday >= 0 && data.shortFormMinutesToday <= 1440
+        && data.timeoutActiveUntil is int && data.timeoutActiveUntil >= 0
+        && data.leisurePassUntil is int && data.leisurePassUntil >= 0
+        && data.strictModeEnabled is bool
+        && data.focusEndsAt is int && data.focusEndsAt >= 0
+        && data.focusDurationMinutes is int && data.focusDurationMinutes >= 0 && data.focusDurationMinutes <= 240
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidDevice(data, userId, deviceId) {
+      return data.keys().hasAll([
+          'id', 'ownerId', 'name', 'os', 'formFactor',
+          'enforcementActive', 'lastSeenAt', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'name', 'os', 'formFactor',
+          'enforcementActive', 'lastSeenAt', 'createdAt'
+        ])
+        && isValidId(data.id) && data.id == deviceId
+        && data.ownerId == userId && data.ownerId == request.auth.uid
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 80
+        && data.os in ['macOS', 'Windows', 'Linux', 'iOS', 'Android']
+        && data.formFactor in ['desktop', 'mobile', 'tablet']
+        && data.enforcementActive is bool
+        && data.lastSeenAt is timestamp
+        && data.createdAt is timestamp;
+    }
+
+    function isValidBlockRule(data, userId, ruleId) {
+      return data.keys().hasAll([
+          'id', 'ownerId', 'target', 'pattern', 'category',
+          'mode', 'enabled', 'platforms', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'target', 'pattern', 'category',
+          'mode', 'enabled', 'platforms', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id) && data.id == ruleId
+        && data.ownerId == userId && data.ownerId == request.auth.uid
+        && data.target is string && data.target.size() >= 1 && data.target.size() <= 120
+        && data.pattern is string && data.pattern.size() >= 1 && data.pattern.size() <= 200
+        && data.category in ['short_form', 'social_feed', 'gaming', 'custom']
+        && data.mode in ['strict_lock', 'timeout_10m', 'work_hours_lock']
+        && data.enabled is bool
+        && data.platforms is list && data.platforms.size() >= 1 && data.platforms.size() <= 5
+        && data.platforms[0] is string && data.platforms[0].size() <= 20
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSchedule(data, userId, scheduleId) {
+      return data.keys().hasAll([
+          'id', 'ownerId', 'name', 'scheduleType', 'startTime',
+          'endTime', 'days', 'lockGames', 'lockSocialAndShorts',
+          'enabled', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'name', 'scheduleType', 'startTime',
+          'endTime', 'days', 'lockGames', 'lockSocialAndShorts',
+          'enabled', 'createdAt', 'updatedAt'
+        ])
+        && isValidId(data.id) && data.id == scheduleId
+        && data.ownerId == userId && data.ownerId == request.auth.uid
+        && data.name is string && data.name.size() >= 1 && data.name.size() <= 80
+        && data.scheduleType in ['work_study', 'downtime']
+        && data.startTime is string && data.startTime.size() == 5 && data.startTime.matches('^([01]\\d|2[0-3]):[0-5]\\d$')
+        && data.endTime is string && data.endTime.size() == 5 && data.endTime.matches('^([01]\\d|2[0-3]):[0-5]\\d$')
+        && data.days is list && data.days.size() >= 1 && data.days.size() <= 7
+        && data.days[0] is string && data.days[0].size() <= 10
+        && data.lockGames is bool
+        && data.lockSocialAndShorts is bool
+        && data.enabled is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidActivityLog(data, userId, logId) {
+      return data.keys().hasAll([
+          'id', 'ownerId', 'title', 'appOrDomain', 'category',
+          'durationMinutes', 'actionTaken', 'aiReasoning', 'deviceOs', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'title', 'appOrDomain', 'category',
+          'durationMinutes', 'actionTaken', 'aiReasoning', 'deviceOs', 'createdAt'
+        ])
+        && isValidId(data.id) && data.id == logId
+        && data.ownerId == userId && data.ownerId == request.auth.uid
+        && data.title is string && data.title.size() >= 1 && data.title.size() <= 200
+        && data.appOrDomain is string && data.appOrDomain.size() >= 1 && data.appOrDomain.size() <= 120
+        && data.category in ['educational', 'productive_work', 'distracting_short_form', 'social_feed', 'gaming']
+        && data.durationMinutes is number && data.durationMinutes >= 0 && data.durationMinutes <= 1440
+        && data.actionTaken in ['allowed_unlimited', 'gentle_nudge', 'timeout_blocked', 'work_hours_locked', 'focus_completed']
+        && data.aiReasoning is string && data.aiReasoning.size() >= 1 && data.aiReasoning.size() <= 400
+        && data.deviceOs is string && data.deviceOs.size() >= 1 && data.deviceOs.size() <= 32
+        && data.createdAt is timestamp;
+    }
+
+    function isValidDailyStat(data, userId, dateKey) {
+      return data.keys().hasAll([
+          'dateKey', 'ownerId', 'educationalMinutes', 'productiveMinutes',
+          'socialShortsMinutes', 'gamingMinutes', 'timeoutsTriggered',
+          'focusSessionsCompleted', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'dateKey', 'ownerId', 'educationalMinutes', 'productiveMinutes',
+          'socialShortsMinutes', 'gamingMinutes', 'timeoutsTriggered',
+          'focusSessionsCompleted', 'updatedAt'
+        ])
+        && data.dateKey is string && data.dateKey.size() == 10 && data.dateKey.matches('^\\d{4}-\\d{2}-\\d{2}$')
+        && data.dateKey == dateKey
+        && data.ownerId == userId && data.ownerId == request.auth.uid
+        && data.educationalMinutes is number && data.educationalMinutes >= 0 && data.educationalMinutes <= 1440
+        && data.productiveMinutes is number && data.productiveMinutes >= 0 && data.productiveMinutes <= 1440
+        && data.socialShortsMinutes is number && data.socialShortsMinutes >= 0 && data.socialShortsMinutes <= 1440
+        && data.gamingMinutes is number && data.gamingMinutes >= 0 && data.gamingMinutes <= 1440
+        && data.timeoutsTriggered is int && data.timeoutsTriggered >= 0 && data.timeoutsTriggered <= 500
+        && data.focusSessionsCompleted is int && data.focusSessionsCompleted >= 0 && data.focusSessionsCompleted <= 100
+        && data.updatedAt is timestamp;
+    }
+
+    // User profile root document (contains PII email -> strictly owner only)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if isOwner(userId) && resource.data.uid == request.auth.uid;
+      allow create: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(userId)
+        && isOwner(userId)
+        && isValidUserProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName', 'email', 'rewardBankMinutes', 'shortFormMinutesToday',
+          'timeoutActiveUntil', 'leisurePassUntil', 'strictModeEnabled',
+          'focusEndsAt', 'focusDurationMinutes', 'updatedAt'
+        ]);
+      allow delete: if isValidId(userId) && isOwner(userId);
+
+      // Synced devices
+      match /devices/{deviceId} {
+        allow get: if isValidId(userId) && isValidId(deviceId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(deviceId)
+          && isOwner(userId)
+          && isValidDevice(incoming(), userId, deviceId)
+          && userExists(userId)
+          && incoming().createdAt == request.time
+          && incoming().lastSeenAt == request.time;
+        allow update: if isValidId(userId) && isValidId(deviceId)
+          && isOwner(userId)
+          && isValidDevice(incoming(), userId, deviceId)
+          && userExists(userId)
+          && incoming().id == existing().id
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().lastSeenAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'name', 'os', 'formFactor', 'enforcementActive', 'lastSeenAt'
+          ]);
+        allow delete: if isValidId(userId) && isValidId(deviceId) && isOwner(userId);
+      }
+
+      // Custom blocklist rules
+      match /blocklist/{ruleId} {
+        allow get: if isValidId(userId) && isValidId(ruleId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(ruleId)
+          && isOwner(userId)
+          && isValidBlockRule(incoming(), userId, ruleId)
+          && userExists(userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(ruleId)
+          && isOwner(userId)
+          && isValidBlockRule(incoming(), userId, ruleId)
+          && userExists(userId)
+          && incoming().id == existing().id
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'target', 'pattern', 'category', 'mode', 'enabled', 'platforms', 'updatedAt'
+          ]);
+        allow delete: if isValidId(userId) && isValidId(ruleId) && isOwner(userId);
+      }
+
+      // Working/study hours & downtime schedules
+      match /schedules/{scheduleId} {
+        allow get: if isValidId(userId) && isValidId(scheduleId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(scheduleId)
+          && isOwner(userId)
+          && isValidSchedule(incoming(), userId, scheduleId)
+          && userExists(userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(scheduleId)
+          && isOwner(userId)
+          && isValidSchedule(incoming(), userId, scheduleId)
+          && userExists(userId)
+          && incoming().id == existing().id
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'name', 'scheduleType', 'startTime', 'endTime', 'days',
+            'lockGames', 'lockSocialAndShorts', 'enabled', 'updatedAt'
+          ]);
+        allow delete: if isValidId(userId) && isValidId(scheduleId) && isOwner(userId);
+      }
+
+      // AI-classified watch & activity logs (immutable log entries)
+      match /activityLogs/{logId} {
+        allow get: if isValidId(userId) && isValidId(logId) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(logId)
+          && isOwner(userId)
+          && isValidActivityLog(incoming(), userId, logId)
+          && userExists(userId)
+          && incoming().createdAt == request.time;
+        allow update: if false;
+        allow delete: if isValidId(userId) && isValidId(logId) && isOwner(userId);
+      }
+
+      // Daily aggregated statistics for weekly dashboard
+      match /dailyStats/{dateKey} {
+        allow get: if isValidId(userId) && isValidId(dateKey) && isOwner(userId);
+        allow list: if isValidId(userId) && isOwner(userId) && resource.data.ownerId == request.auth.uid;
+        allow create: if isValidId(userId) && isValidId(dateKey)
+          && isOwner(userId)
+          && isValidDailyStat(incoming(), userId, dateKey)
+          && userExists(userId)
+          && incoming().updatedAt == request.time;
+        allow update: if isValidId(userId) && isValidId(dateKey)
+          && isOwner(userId)
+          && isValidDailyStat(incoming(), userId, dateKey)
+          && userExists(userId)
+          && incoming().dateKey == existing().dateKey
+          && incoming().ownerId == existing().ownerId
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'educationalMinutes', 'productiveMinutes', 'socialShortsMinutes',
+            'gamingMinutes', 'timeoutsTriggered', 'focusSessionsCompleted', 'updatedAt'
+          ]);
+        allow delete: if isValidId(userId) && isValidId(dateKey) && isOwner(userId);
+      }
+    }
+  }
+}
